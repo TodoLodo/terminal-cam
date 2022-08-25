@@ -33,5 +33,5 @@ Usage
 
 .. code-block:: bash
 
-    py terminal-cam.py <option #>
+    py terminal-cam.py <option>
 
