@@ -35,3 +35,10 @@ Usage
 
     py terminal-cam.py <option>
 
+
+Contribute
+==========
+
+Contributions are open for this project to add more features, full fill feature requests and fix bugs.
+Even if your not fond of coding much you may contribute by mentioning any issues, bugs or even features you may hope to see in the future.
+

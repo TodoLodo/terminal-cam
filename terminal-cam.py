@@ -6,6 +6,7 @@ import sys
 import os
 import cv2
 import warnings
+import mediapipe as mp
 
 warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
 warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
