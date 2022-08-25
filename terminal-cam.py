@@ -1,5 +1,4 @@
 import random
-import statistics
 from numba import jit
 from numba.core.errors import NumbaPendingDeprecationWarning, NumbaDeprecationWarning, ConstantInferenceError, NumbaWarning
 from math import ceil
@@ -7,7 +6,6 @@ import sys
 import os
 import cv2
 import warnings
-import mediapipe as mp
 
 warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
 warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
