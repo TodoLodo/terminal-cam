@@ -1,5 +1,5 @@
 import random
-from numba import jit
+from numba import jit, cuda
 from numba.core.errors import NumbaPendingDeprecationWarning, NumbaDeprecationWarning, ConstantInferenceError, NumbaWarning
 from math import ceil
 import sys
@@ -36,10 +36,7 @@ class Main:
         self.terminalColorsSliced = self.terminalColors[1:]
 
         # cam setup
-        self.camSize = (1280, 720)
         self.cam = cv2.VideoCapture(0)
-        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
         # face mesh
         mp_drawing = mp.solutions.drawing_utils
@@ -60,15 +57,12 @@ class Main:
         except Exception:
             return default
 
-    @jit(target_backend='cuda')
     def cudaOperator0(self, gray, frame):
         return "".join(["".join([self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] for a in range(len(row))]) + "\n" for row in gray])
 
-    @jit(target_backend='cuda')
     def cudaOperator1(self, gray, frame):
         return f"{random.choice(self.terminalColors)}".join(["".join([self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] for a in range(len(row))]) + "\n" for row in gray])+self.terminalColors[0]
 
-    @jit(target_backend='cuda')
     def cudaOperator2(self, gray, frame):
         c = random.choice(self.terminalColorsSliced)
         return "".join(
@@ -87,7 +81,6 @@ class Main:
                  for a in range(len(row))
                  ]) + "\n" for row in gray]) + self.terminalColors[0]
 
-    @jit(target_backend='cuda')
     def cudaOperator3(self, gray, frame):
         return "".join(
             ["".join(
@@ -113,7 +106,7 @@ class Main:
             for face in result.multi_face_landmarks:
                 for pos in face.landmark:
                     #print((ceil(pos.y*49), ceil(pos.x*184)))
-                    if (ceil(pos.y*49) ,ceil(pos.x*184)) not in lm:
+                    if (ceil(pos.y*49), ceil(pos.x*184)) not in lm:
                         #print(lm)
 
                         #print(gray[ceil(pos.y*49), ceil(pos.x*184)])
@@ -146,7 +139,7 @@ class Main:
         img_counter = 0
         n = True
         with self.mp_face_mesh.FaceMesh(
-                max_num_faces=1,
+                max_num_faces=2,
                 refine_landmarks=True,
                 min_detection_confidence=0.5,
                 min_tracking_confidence=0.5) as face_mesh:
@@ -161,7 +154,7 @@ class Main:
                 frame.flags.writeable = False
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-                frame = cv2.resize(frame, (184, 49), interpolation=cv2.INTER_AREA)
+                frame = cv2.resize(frame, (128, 72), interpolation=cv2.INTER_AREA)
 
                 result = face_mesh.process(frame)
 
