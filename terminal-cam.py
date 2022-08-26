@@ -1,3 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+A python script that grabs frame camera and prints out to the terminal
+
+terminal-cam is script built on Python language that grabs frames from the integrated webcam and compute the relevant
+characters depending on the gray scale value at each pixel of a downscaled frame and prints out to the terminal
+terminal-cam comes with different features/options which can found with more details and usage at,
+https://github.com/TodoLodo/terminal-cam#readme
+"""
+__author__ = "Todo Lodo"
+__license__ = "GPL"
+__version__ = "1.0.0"
+__maintainer__ = "Todo Lodo"
+__email__ = "me@todolodo.xyz"
+
+# imports
 import random
 from math import ceil
 import sys
