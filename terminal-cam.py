@@ -47,9 +47,21 @@ class Main:
                                "\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m", "\033[36m",
                                "\033[91m", "\033[92m", "\033[93m", "\033[94m", "\033[95m", "\033[96m"]
         self.terminalColorsSliced = self.terminalColors[1:]
+        self.terminalWidth = 11
+        self.terminalHeight = 5
+        self.terminal_1_1_Ratio = 11 / 5
 
         # cam setup
         self.cam = cv2.VideoCapture(0)
+        # using 1e4 to get the max possible value for resolution
+        self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 10000)
+        self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 10000)
+        self.width = self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)
+        self.height = self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        self.camRatio = self.width/self.height
+
+        # terminal Ration
+        self.terminalRatio = self.camRatio*self.terminal_1_1_Ratio
 
         # face mesh (used for creating face_mesh object to detect faces)
         self.mp_face_mesh = mp.solutions.face_mesh
@@ -113,9 +125,10 @@ class Main:
         if result.multi_face_landmarks:  # check if list length is > 0
             for face in result.multi_face_landmarks:  # for every face detected
                 for pos in face.landmark:
-                    if (ceil(pos.y * 49), ceil(pos.x * 184)) not in lm:
+                    y, x = ceil(pos.y * self.terminalHeight), ceil(pos.x * self.terminalWidth)
+                    if (y, x) not in lm:
                         # appending if mesh point isn't computed before
-                        lm.append((ceil(pos.y * 49), ceil(pos.x * 184)))
+                        lm.append((y, x))
 
     # initiate rendering string
         render = ""
@@ -137,6 +150,25 @@ class Main:
             y += 1  # increment x throw rows
 
         return render
+
+    # terminal scaler
+    def terminalScale(self):
+        w, h = 0, 0
+        size = os.get_terminal_size()
+        if size.columns/size.lines >= self.terminalRatio:
+            h = size.lines
+            w = ceil(h*self.terminal_1_1_Ratio*self.camRatio)
+        else:
+            w = size.columns
+            h = ceil(w/(self.terminal_1_1_Ratio*self.camRatio))
+
+        # del data
+        del size
+
+        # class attributes
+        self.terminalWidth, self.terminalHeight = w, h
+
+        return w, h
 
     # main function consisting the main loop
     def Terminal(self):
@@ -171,9 +203,7 @@ class Main:
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
                 # printing out to the terminal of returned string from relevant function
-                print(
-                    f"{getattr(self, 'cudaOperator' + str(self.option))(cv2.resize(gray, (184, 49), interpolation=cv2.INTER_AREA), result)[:-1]}",
-                    flush=True, end="\r")
+                print(f"{getattr(self, 'cudaOperator' + str(self.option))(cv2.resize(gray, (self.terminalScale()), interpolation=cv2.INTER_AREA), result)[:-1]}", flush=True, end="\r")
 
                 # grabbing key events
                 k = cv2.waitKey(1)
