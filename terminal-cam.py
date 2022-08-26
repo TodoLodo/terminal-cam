@@ -1,17 +1,9 @@
 import random
-from numba import jit, cuda
-from numba.core.errors import NumbaPendingDeprecationWarning, NumbaDeprecationWarning, ConstantInferenceError, NumbaWarning
 from math import ceil
 import sys
 import os
 import cv2
-import warnings
 import mediapipe as mp
-
-warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
-warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
-warnings.simplefilter('ignore', category=ConstantInferenceError)
-warnings.simplefilter('ignore', category=NumbaWarning)
 
 
 class Main:
@@ -21,7 +13,11 @@ class Main:
         option:
             0 : default/bw
             1: party/multicolor
+            2: random color at bright spot
+            3: random color for each line at bright spots
+            4: random color on face
         """
+        # check if length of option(args) is zero, if so resolve to default option (0)
         if not option:
             option = ['0']
         # print(option)
@@ -38,31 +34,25 @@ class Main:
         # cam setup
         self.cam = cv2.VideoCapture(0)
 
-        # face mesh
-        mp_drawing = mp.solutions.drawing_utils
-        mp_drawing_styles = mp.solutions.drawing_styles
+        # face mesh (used for creating face_mesh object to detect faces)
         self.mp_face_mesh = mp.solutions.face_mesh
-        self.face_mesh = self.mp_face_mesh.FaceMesh(
-            max_num_faces=1,
-            refine_landmarks=True,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        )
 
+        # run main function
         self.Terminal()
 
-    def safe_execute(self, default, exception, *args):
-        try:
-            return self.rawChars[ceil((default / 255) * 12)]
-        except Exception:
-            return default
-
+    # option 0
     def cudaOperator0(self, gray, frame):
-        return "".join(["".join([self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] for a in range(len(row))]) + "\n" for row in gray])
+        return "".join(
+            ["".join([self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] for a in range(len(row))]) + "\n" for row in
+             gray])
 
+    # option 1
     def cudaOperator1(self, gray, frame):
-        return f"{random.choice(self.terminalColors)}".join(["".join([self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] for a in range(len(row))]) + "\n" for row in gray])+self.terminalColors[0]
+        return f"{random.choice(self.terminalColors)}".join(
+            ["".join([self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] for a in range(len(row))]) + "\n" for row in
+             gray]) + self.terminalColors[0]
 
+    # option 2
     def cudaOperator2(self, gray, frame):
         c = random.choice(self.terminalColorsSliced)
         return "".join(
@@ -81,6 +71,7 @@ class Main:
                  for a in range(len(row))
                  ]) + "\n" for row in gray]) + self.terminalColors[0]
 
+    # option 3
     def cudaOperator3(self, gray, frame):
         return "".join(
             ["".join(
@@ -98,74 +89,76 @@ class Main:
                  for a in range(len(row))
                  ]) + "\n" for row in gray]) + self.terminalColors[0]
 
+    # option 4
     def cudaOperator4(self, gray, result):
         lm = []
 
-        #print(result.multi_face_landmarks)
-        if result.multi_face_landmarks:
-            for face in result.multi_face_landmarks:
+        if result.multi_face_landmarks:  # check if list length is > 0
+            for face in result.multi_face_landmarks:  # for every face detected
                 for pos in face.landmark:
-                    #print((ceil(pos.y*49), ceil(pos.x*184)))
-                    if (ceil(pos.y*49), ceil(pos.x*184)) not in lm:
-                        #print(lm)
+                    if (ceil(pos.y * 49), ceil(pos.x * 184)) not in lm:
+                        # appending if mesh point isn't computed before
+                        lm.append((ceil(pos.y * 49), ceil(pos.x * 184)))
 
-                        #print(gray[ceil(pos.y*49), ceil(pos.x*184)])
-                        lm.append((ceil(pos.y*49), ceil(pos.x*184)))
-
-                        #gray[ceil(pos.y*49), ceil(pos.x*184)] = random.choice(self.terminalColorsSliced)+self.rawChars[ceil((gray[ceil(pos.y*49), ceil(pos.x*184)] / 255) * 12)]+self.terminalColors[0]
-
+    # initiate rendering string
         render = ""
 
         y = 0
-        #print(lm)
-        for row in gray:
+        for row in gray:  # looping through each row in gray numpy array
             x = 0
-            for a in range(len(row)):
-                #print((x, y))
-                if (y, len(row)-x) in lm:
-                    render += random.choice(self.terminalColors)+self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)]+self.terminalColors[0]
+            for a in range(len(row)):  # iterating through elements in a row with the length of row
+                if (y, len(row) - x) in lm:
+                    # if point is point on face add a coloured string to be printed
+                    render += random.choice(self.terminalColors) + self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] + \
+                              self.terminalColors[0]
                 else:
+                    # if not will add a default colour string
                     render += self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)]
-                x += 1
+                x += 1  # increment x throw row
+            # adding \n to go to next line after each row
             render += "\n"
-            y += 1
-
+            y += 1  # increment x throw rows
 
         return render
-        #return "".join(["".join([self.safe_execute(row[-1 - (1 * a)], ValueError) for a in range(len(row))]) + "\n" for row in gray])
-        #return ""
 
+    # main function consisting the main loop
     def Terminal(self):
-        img_counter = 0
-        n = True
+        # opening up a face_mesh object to detect up-to 2 faces
         with self.mp_face_mesh.FaceMesh(
                 max_num_faces=2,
                 refine_landmarks=True,
                 min_detection_confidence=0.5,
                 min_tracking_confidence=0.5) as face_mesh:
             while True:
+                # grabs ret and frame from camera where frame is numpy array
                 ret, frame = self.cam.read()
                 if not ret:
                     print("failed to grab frame")
-                    break
+                    continue
 
+                # creating a gray scale frame to find the relevant character to print later on
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+                # setting frames flags writeable to false and changing colour-space
                 frame.flags.writeable = False
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
+                # downscaling frame array
                 frame = cv2.resize(frame, (128, 72), interpolation=cv2.INTER_AREA)
 
+                # processing to find faces in frame
                 result = face_mesh.process(frame)
 
+                # setting frames flags writeable to back to true and changing colour-space back
                 frame.flags.writeable = True
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
-                #os.system('cls')
+                # printing out to the terminal of returned string from relevant function
                 print(
-                    f"{getattr(self, 'cudaOperator'+str(self.option))(cv2.resize(gray, (184, 49), interpolation=cv2.INTER_AREA), result)[:-1]}",
+                    f"{getattr(self, 'cudaOperator' + str(self.option))(cv2.resize(gray, (184, 49), interpolation=cv2.INTER_AREA), result)[:-1]}",
                     flush=True, end="\r")
 
+                # grabbing key events
                 k = cv2.waitKey(1)
                 if k % 256 == 27:
                     # ESC pressed
@@ -173,12 +166,6 @@ class Main:
                     self.cam.release()
                     cv2.destroyAllWindows()
                     break
-                elif k % 256 == 32:
-                    # SPACE pressed
-                    img_name = f"opencv_frame_{img_counter}.png"
-                    cv2.imwrite(img_name, frame)
-                    print(f"{img_name} written!")
-                    img_counter += 1
 
 
 if __name__ == '__main__':
