@@ -30,6 +30,7 @@ Usage
 * option 3, will be the same as option 2 but colors will be randomised at each line
 * option 4, will be same as option 0 but would detect one face and have random colors for the face at each frame
 
+Open up terminal as a maximized window and run the following command:
 
 .. code-block:: bash
 
