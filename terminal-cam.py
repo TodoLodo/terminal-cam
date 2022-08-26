@@ -10,7 +10,7 @@ https://github.com/TodoLodo/terminal-cam#readme
 """
 __author__ = "Todo Lodo"
 __license__ = "GPL"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __maintainer__ = "Todo Lodo"
 __email__ = "me@todolodo.xyz"
 
