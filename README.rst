@@ -2,6 +2,10 @@
 **terminal-cam**
 ===================
 
+v1.0.1
+
+------------------------------------------------------------------------------------------------------------------------
+
 **Terminal Cam** is a **python script** which grabs the frames from your webcam and prints out to the terminal with relevant character
 
 =============
