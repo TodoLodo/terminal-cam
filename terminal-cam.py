@@ -47,6 +47,7 @@ class Main:
                                "\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m", "\033[36m",
                                "\033[91m", "\033[92m", "\033[93m", "\033[94m", "\033[95m", "\033[96m"]
         self.terminalColorsSliced = self.terminalColors[1:]
+        # computing the ratio of similar visual distance between height and width when printing characters on terminal
         self.terminalWidth = 11
         self.terminalHeight = 5
         self.terminal_1_1_Ratio = 11 / 5
@@ -56,9 +57,10 @@ class Main:
         # using 1e4 to get the max possible value for resolution
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 10000)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 10000)
+        # obtaining max possible resolution
         self.width = self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.height = self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        self.camRatio = self.width/self.height
+        self.camRatio = self.width/self.height  # computing resolution ratio
 
         # terminal Ration
         self.terminalRatio = self.camRatio*self.terminal_1_1_Ratio
@@ -130,7 +132,7 @@ class Main:
                         # appending if mesh point isn't computed before
                         lm.append((y, x))
 
-    # initiate rendering string
+        # initiate rendering string
         render = ""
 
         y = 0
