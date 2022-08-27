@@ -3,8 +3,8 @@
 """
 A python script that grabs frame camera and prints out to the terminal
 
-terminal-cam is script built on Python language that grabs frames from the integrated webcam and compute the relevant
-characters depending on the gray scale value at each pixel of a downscaled frame and prints out to the terminal
+terminal-cam is script built on Python language that grabs frames from the integrated webcam, compute the relevant
+characters depending on the gray scale value at each pixel of a downscaled frame and prints out to the terminal.
 terminal-cam comes with different features/options which can found with more details and usage at,
 https://github.com/TodoLodo/terminal-cam#readme
 """
