@@ -15,12 +15,13 @@ __maintainer__ = "Todo Lodo"
 __email__ = "me@todolodo.xyz"
 
 # imports
-import random
-from math import ceil
-import sys
-import os
 import cv2
+import os
+from math import ceil
 import mediapipe as mp
+from numba import jit
+import random
+import sys
 
 
 class Main:
@@ -71,20 +72,21 @@ class Main:
         # run main function
         self.Terminal()
 
+    # cuda operator which targets the gpu for calculations
+    @jit(target_backend="cuda")
+    def cudaOperator(self, gray):
+        return [[self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] for a in range(len(row))] + ["\n"] for row in gray]
+
     # option 0
-    def cudaOperator0(self, gray, frame):
-        return "".join(
-            ["".join([self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] for a in range(len(row))]) + "\n" for row in
-             gray])
+    def Operator0(self, gray, frame):
+        return "".join(["".join(row) for row in self.cudaOperator(gray)])
 
     # option 1
-    def cudaOperator1(self, gray, frame):
-        return f"{random.choice(self.terminalColors)}".join(
-            ["".join([self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)] for a in range(len(row))]) + "\n" for row in
-             gray]) + self.terminalColors[0]
+    def Operator1(self, gray, frame):
+        return f"{random.choice(self.terminalColors)}".join(["".join(row) for row in self.cudaOperator(gray)]) + self.terminalColors[0]
 
     # option 2
-    def cudaOperator2(self, gray, frame):
+    def Operator2(self, gray, frame):
         c = random.choice(self.terminalColorsSliced)
         return "".join(
             ["".join(
@@ -103,7 +105,7 @@ class Main:
                  ]) + "\n" for row in gray]) + self.terminalColors[0]
 
     # option 3
-    def cudaOperator3(self, gray, frame):
+    def Operator3(self, gray, frame):
         return "".join(
             ["".join(
                 [(random.choice(self.terminalColorsSliced)
@@ -121,7 +123,7 @@ class Main:
                  ]) + "\n" for row in gray]) + self.terminalColors[0]
 
     # option 4
-    def cudaOperator4(self, gray, result):
+    def Operator4(self, gray, result):
         lm = []
 
         if result.multi_face_landmarks:  # check if list length is > 0
@@ -205,7 +207,7 @@ class Main:
                 frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
                 # printing out to the terminal of returned string from relevant function
-                print(f"{getattr(self, 'cudaOperator' + str(self.option))(cv2.resize(gray, (self.terminalScale()), interpolation=cv2.INTER_AREA), result)[:-1]}", flush=True, end="\r")
+                print(f"{getattr(self, 'Operator' + str(self.option))(cv2.resize(gray, (self.terminalScale()), interpolation=cv2.INTER_AREA), result)[:-1]}", flush=True, end="\r")
 
                 # grabbing key events
                 k = cv2.waitKey(1)
