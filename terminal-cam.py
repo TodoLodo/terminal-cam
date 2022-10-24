@@ -49,8 +49,6 @@ class Main:
                                "\033[91m", "\033[92m", "\033[93m", "\033[94m", "\033[95m", "\033[96m"]
         self.terminalColorsSliced = self.terminalColors[1:]
         # computing the ratio of similar visual distance between height and width when printing characters on terminal
-        self.terminalWidth = 11
-        self.terminalHeight = 5
         self.terminal_1_1_Ratio = 11 / 5
 
         # cam setup
