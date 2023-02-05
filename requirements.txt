@@ -1,3 +1,1 @@
 opencv-python
-mediapipe
-numba
