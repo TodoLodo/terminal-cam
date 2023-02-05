@@ -2,7 +2,7 @@
 **terminal-cam**
 ===================
 
-v1.0.2dev
+v1.1.0
 
 ------------------------------------------------------------------------------------------------------------------------
 
@@ -29,9 +29,7 @@ Usage
 **terminal-cam.py** is easy to use with couple of options ranging from 0 to 4 taken as arguments.
 
 * option 0, will printout 12 types of characters depending the grayscale value at each points of downscaled frame (default)
-* option 1, will be same as option 0 but would print with different colors randomly chosen at each frame
-* option 2, will be same as option 0 but would print randomly chosen color for bright spots at each frame
-* option 3, will be the same as option 2 but colors will be randomised at each line
+* option 1, will be same as option 0 and characters will have a color respective to highest present color among red, green and blue
 
 .. code-block:: bash
 

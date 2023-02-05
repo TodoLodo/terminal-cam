@@ -11,7 +11,7 @@ https://github.com/TodoLodo/terminal-cam#readme
 
 __author__ = "Todo Lodo"
 __license__ = "GPL"
-__version__ = "1.0.2dev"
+__version__ = "1.1.0"
 __maintainer__ = "Todo Lodo"
 __email__ = "me@todolodo.xyz"
 
@@ -61,6 +61,7 @@ class Main:
         self.terminalColors = ["\033[0m",
                                "\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m", "\033[36m",
                                "\033[91m", "\033[92m", "\033[93m", "\033[94m", "\033[95m", "\033[96m"]
+        self.EBGR = ["\033[0m", "\033[0;34m", "\033[0;32m", "\033[0;31m"]
         self.terminalColorsSliced = self.terminalColors[1:]
         # computing the ratio of similar visual distance between height and width when printing characters on terminal
         self.terminal_1_1_Ratio = 11 / 5
@@ -78,6 +79,7 @@ class Main:
         self.terminalRatio = self.camRatio * self.terminal_1_1_Ratio
 
         self.vCharMapper = np.vectorize(self.charMapper)
+        self.vColorMapper = np.vectorize(self.colorMapper)
         self.vRound = np.vectorize(round)
 
         self.chosenOperator = getattr(self, f"Operator{self.option}")
@@ -96,59 +98,26 @@ class Main:
     def charMapper(self, val):
         return self.rawChars[round(val)]
 
+    def colorMapper(self, val):
+        print(val)
+
     # common operator
     def commonOperator(self, gray):
-        charArr = np.c_[arr := np.flip(self.vCharMapper(gray / 255 * 12), 1), ["\n"] * arr.shape[0]]
-        return charArr
+        charArr = (arr := np.c_[arr := np.flip(self.vCharMapper(gray / 255 * 12), 1), ["\n"] * arr.shape[0]]).reshape((arr.size,))
+        return np.char.mod('%s', charArr)
 
     # option 0
-    def Operator0(self, gray):
-        return "".join(["".join(row) for row in self.commonOperator(gray)])
+    def Operator0(self, frame):
+        return "".join(self.commonOperator(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)))
 
-    # option 1
-    def Operator1(self, gray):
-        return f"{random.choice(self.terminalColors)}".join(["".join(row) for row in self.commonOperator(gray)]) + \
-               self.terminalColors[0]
+    def Operator1(self, frame):
+        h, w, c = frame.shape
+        colArr = (arr:=np.c_[arr := np.flip(np.array([self.EBGR[rgb.argmax() + 1] for rgb in frame.reshape(h * w, c)]).reshape((h, w)), 1), [self.EBGR[0]] * arr.shape[0]]).reshape((arr.size,))
 
-    # option 2
-    def Operator2(self, gray):
-        c = random.choice(self.terminalColorsSliced)
-        return "".join(
-            ["".join(
-                [(c
-                  if ceil((row[-1 - (1 * a)] / 255) * 12) >= 10
-                     and (ceil((row[-1 - (1 * (a - 1))] / 255) * 12) < 10 if a != 0 else True)
-                  else
-                  self.terminalColors[0]
-                  if ceil((row[-1 - (1 * a)] / 255) * 12) < 10
-                     and (ceil((row[-1 - (1 * (a - 1))] / 255) * 12) >= 10 if a != 0 else True)
-                  else
-                  "")
-                 +
-                 self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)]
-                 for a in range(len(row))
-                 ]) + "\n" for row in gray]) + self.terminalColors[0]
+        return "".join([f"{col}{char}" for char, col in zip(self.commonOperator(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)), colArr)])
 
-    # option 3
-    def Operator3(self, gray):
-        return "".join(
-            ["".join(
-                [(random.choice(self.terminalColorsSliced)
-                  if ceil((row[-1 - (1 * a)] / 255) * 12) >= 10 and (
-                    ceil((row[-1 - (1 * (a - 1))] / 255) * 12) < 10 if a != 0 else True)
-                  else
-                  self.terminalColors[0]
-                  if ceil((row[-1 - (1 * a)] / 255) * 12) < 10 and (
-                      ceil((row[-1 - (1 * (a - 1))] / 255) * 12) >= 10 if a != 0 else True)
-                  else
-                  "")
-                 +
-                 self.rawChars[ceil((row[-1 - (1 * a)] / 255) * 12)]
-                 for a in range(len(row))
-                 ]) + "\n" for row in gray]) + self.terminalColors[0]
-
-    # terminal scaler
-    def terminalScale(self):
+    # gets terminal window size
+    def terminalScale(self) -> tuple[float, float]:
         w, h = 0, 0
         size = os.get_terminal_size()
         if size.columns / size.lines >= self.terminalRatio:
@@ -167,33 +136,20 @@ class Main:
         return w, h
 
     # main function consisting the main loop
-    def Terminal(self):
+    def Terminal(self) -> None:
         try:
             startT = time.time()
             waitTimers = [5, 7, 10, 12, 15, 20]
             waitTimersIndex = 0
             while True:
-                # grabs ret and frame from camera where frame is numpy array
+                # grabs ret and frame from camera where frame is a numpy array
                 ret, frame = self.cam.read()
                 if ret:
-                    # creating a gray scale frame to find the relevant character to print later on
-                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-                    # setting frames flags writeable to false and changing colour-space
-                    frame.flags.writeable = False
-                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-                    # downscaling frame array
-                    frame = cv2.resize(frame, (128, 72), interpolation=cv2.INTER_AREA)
-
-                    # setting frames flags writeable to back to true and changing colour-space back
-                    frame.flags.writeable = True
-                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-
                     # printing out to the terminal of returned string from relevant function
-                    print(f"{self.chosenOperator(cv2.resize(gray, (self.terminalScale()), interpolation=cv2.INTER_AREA))[:-1]}", flush=False, end="\n")
-                    nowT = time.time()
-                    print(round(1 / (nowT - startT)))
+                    print(f"{self.chosenOperator(cv2.resize(frame, (self.terminalScale()), interpolation=cv2.INTER_AREA))[:-1]}", flush=True, end="\n")
+
+                    # fps
+                    print(round(1 / ((nowT := time.time()) - startT)))
                     startT = nowT
 
                 # wait if no frame
@@ -227,6 +183,10 @@ class Main:
         except KeyboardInterrupt:
             e = "Keyboard Interrupt!"
             printE(e)
+        except OSError:
+            e = "Unable to find terminal size! Run the script via a terminal"
+            printE(e)
+
         except FailedToGrabFrame as e:
             printE(e)
 
