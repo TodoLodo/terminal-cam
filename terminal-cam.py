@@ -21,6 +21,7 @@ import warnings
 import os
 os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
 import cv2
+import ctypes
 from math import ceil
 import random
 import sys
@@ -36,6 +37,23 @@ class FailedToGrabFrame(Exception):
 
 def printE(e):
     print(f"\n\033[0;33m{e}\033[0m")
+
+class _CONSOLE_CURSOR_INFO(ctypes.Structure):
+    _fields_ = [("dwSize", ctypes.c_int), ("bVisible", ctypes.c_bool)]
+
+def hide_cursor():
+    ci = _CONSOLE_CURSOR_INFO()
+    ci.dwSize = 100
+    ci.bVisible = False
+    handle = ctypes.windll.kernel32.GetStdHandle(-11)
+    ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(ci))
+
+def show_cursor():
+    ci = _CONSOLE_CURSOR_INFO()
+    ci.dwSize = 100
+    ci.bVisible = True
+    handle = ctypes.windll.kernel32.GetStdHandle(-11)
+    ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(ci))
 
 
 class Main:
@@ -68,7 +86,7 @@ class Main:
 
         # cam setup
         self.cam: cv2.VideoCapture
-        self.camSetup()
+        self.cam_setup()
 
         # obtaining max possible resolution
         self.width = self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -78,46 +96,52 @@ class Main:
         # terminal Ration
         self.terminalRatio = self.camRatio * self.terminal_1_1_Ratio
 
-        self.vCharMapper = np.vectorize(self.charMapper)
-        self.vColorMapper = np.vectorize(self.colorMapper)
+        self.vCharMapper = np.vectorize(lambda val: self.rawChars[round(val)])
+        self.vColorMapper = np.vectorize(self.color_mapper)
         self.vRound = np.vectorize(round)
 
-        self.chosenOperator = getattr(self, f"Operator{self.option}")
+        self.chosenOperator = getattr(self, f"operator{self.option}")
 
         # run main function
-        self.Terminal()
+        self.terminal()
 
     # cam setup function
-    def camSetup(self):
+    def cam_setup(self):
         self.cam = cv2.VideoCapture(0)
         # using 1e4 to get the max possible value for resolution
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, 10000)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 10000)
 
     #  char mapper
-    def charMapper(self, val):
+    def char_mapper(self, val):
         return self.rawChars[round(val)]
 
-    def colorMapper(self, val):
-        print(val)
+    def color_mapper(self, val):
+        return f"\x1b[48;2;{val[2]};{val[0]};{val[1]}m \033[0m"
 
     # common operator
-    def commonOperator(self, gray):
-        charArr = (arr := np.c_[arr := np.flip(self.vCharMapper(gray / 255 * 12), 1), ["\n"] * arr.shape[0]]).reshape((arr.size,))
-        return np.char.mod('%s', charArr)
+    def common_operator(self, gray):
+        char_arr = (arr := np.c_[arr := np.flip(self.vCharMapper(gray / 255 * 12), 1), ["\n"] * arr.shape[0]]).reshape((arr.size,))
+        return np.char.mod('%s', char_arr)
 
     # option 0
-    def Operator0(self, frame):
-        return "".join(self.commonOperator(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)))
+    def operator0(self, frame):
+        return "".join(self.common_operator(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)))
 
-    def Operator1(self, frame):
+    def operator1(self, frame):
         h, w, c = frame.shape
         colArr = (arr:=np.c_[arr := np.flip(np.array([self.EBGR[rgb.argmax() + 1] for rgb in frame.reshape(h * w, c)]).reshape((h, w)), 1), [self.EBGR[0]] * arr.shape[0]]).reshape((arr.size,))
 
-        return "".join([f"{col}{char}" for char, col in zip(self.commonOperator(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)), colArr)])
+        return "".join([f"{col}{char}" for char, col in zip(
+            self.common_operator(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)), colArr)])
+
+    def operator2(self, frame):
+        h, w, c = frame.shape
+        char_arr = (arr := np.c_[arr := np.flip(np.apply_along_axis(self.color_mapper, axis=-1, arr=frame), 1), ["\n"] * arr.shape[0]]).reshape((arr.size,))
+        return "".join(np.char.mod('%s', char_arr))
 
     # gets terminal window size
-    def terminalScale(self) -> tuple[float, float]:
+    def terminal_scale(self) -> tuple[float, float]:
         w, h = 0, 0
         size = os.get_terminal_size()
         if size.columns / size.lines >= self.terminalRatio:
@@ -133,29 +157,37 @@ class Main:
         # class attributes
         self.terminalWidth, self.terminalHeight = w, h
 
+        #print(w, h)
+
         return w, h
 
     # main function consisting the main loop
-    def Terminal(self) -> None:
+    def terminal(self) -> None:
         try:
-            startT = time.time()
-            waitTimers = [5, 7, 10, 12, 15, 20]
-            waitTimersIndex = 0
+            start_t = time.time()
+            wait_timers = [5, 7, 10, 12, 15, 20]
+            wait_timers_index = 0
+            clear = 'cls' if os.name == 'nt' else 'clear'
+
+            hide_cursor()
             while True:
                 # grabs ret and frame from camera where frame is a numpy array
                 ret, frame = self.cam.read()
                 if ret:
+                    os.system(clear)
                     # printing out to the terminal of returned string from relevant function
-                    print(f"{self.chosenOperator(cv2.resize(frame, (self.terminalScale()), interpolation=cv2.INTER_AREA))[:-1]}", flush=True, end="\n")
+                    print(
+                        f"{self.chosenOperator(cv2.resize(frame, (self.terminal_scale()), interpolation=cv2.INTER_AREA))[:-1]}",
+                        flush=True,
+                        end=""
+                    )
 
                     # fps
-                    print(round(1 / ((nowT := time.time()) - startT)))
-                    startT = nowT
-
-                # wait if no frame
-                else:
+                    print(f"\r{round(1 / ((nowT := time.time()) - start_t))}", end="\n")
+                    start_t = nowT
+                else:  # wait if no frame
                     try:
-                        t = waitTimers[waitTimersIndex]
+                        t = wait_timers[wait_timers_index]
                         maxsl = 0
                         for i in range(t+1):
                             st = time.time()
@@ -169,8 +201,8 @@ class Main:
                             time.sleep(1 - (time.time()-st))
                             print("\b"*sl, end="")
                         print()
-                        self.camSetup()
-                        waitTimersIndex += 1
+                        self.cam_setup()
+                        wait_timers_index += 1
                     except IndexError:
                         raise FailedToGrabFrame
 
@@ -180,6 +212,7 @@ class Main:
                     # ESC pressed
                     print("Escape hit, closing...")
                     break
+
         except KeyboardInterrupt:
             e = "Keyboard Interrupt!"
             printE(e)
@@ -190,6 +223,7 @@ class Main:
         except FailedToGrabFrame as e:
             printE(e)
 
+        show_cursor()
         self.cam.release()
         cv2.destroyAllWindows()
 

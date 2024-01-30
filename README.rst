@@ -2,11 +2,13 @@
 **terminal-cam**
 ===================
 
-v1.1.0
+.. image:: https://img.shields.io/badge/version-1.1.0.dev0-yellow.svg
+   :target: https://github.com/TodoLodo/terminal-cam
 
-------------------------------------------------------------------------------------------------------------------------
 
-**Terminal Cam** is a **python script** which grabs the frames from your webcam and prints out to the terminal with relevant character
+----
+
+**Terminal Cam** is a **python script** that captures frames from your webcam and prints them out to the terminal using relevant characters.
 
 =============
 Documentation
@@ -41,8 +43,7 @@ terminal resolution change will occur the printed frame to change in resolution 
 Contribute
 ==========
 
-Contributions are open for this project to add more features, full fill feature requests and fix bugs.
-Even if your not fond of coding much you may contribute by mentioning any issues, bugs or even features you may hope to see in the future.
+Contributions are welcome for this project to add more features, fulfill feature requests, and fix bugs. Even if you're not fond of coding much, you may contribute by mentioning any issues, bugs, or even features you may hope to see in the future.
 
 ----------------------------------------------------------------------------------------------------------------------
 
